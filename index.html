@@ -1,14 +1,316 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lịch trực YokDon</title>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Trực Tết VQG Yok Đôn</title>
+    <!-- 1. Thư viện Giao diện (Tailwind) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" crossorigin src="/assets/index-DX6NG1Qe.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BDQ0pI1s.css">
-  </head>
-  <body>
+    <!-- 2. Thư viện React (Bộ não) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 3. Bộ dịch mã trực tiếp (Babel) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Times+New+Roman&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .font-report { font-family: 'Times New Roman', Times, serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-area { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; }
+            table { border: 1.5px solid black !important; width: 100% !important; }
+            th, td { border: 1px solid black !important; color: black !important; padding: 4px !important; }
+        }
+    </style>
+</head>
+<body>
     <div id="root"></div>
-  </body>
+
+    <!-- CODE XỬ LÝ CHÍNH -->
+    <script type="text/babel">
+        const { useState, useEffect, Fragment } = React;
+
+        // --- BỘ ICON TỰ VẼ (Không phụ thuộc thư viện ngoài để tránh lỗi) ---
+        const Icon = ({ name, size = 18 }) => {
+            const icons = {
+                Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2 2 2 0 0 1-2 2 2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2 2 2 0 0 1 2 2 2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2 2 2 0 0 1 2-2 2 2 0 0 0 2-2v-.44a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-2-2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />,
+                Users: <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
+                Play: <path d="m5 3 14 9-14 9V3z" />,
+                Printer: <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />,
+                UserPlus: <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M22 11h-6" />,
+                Trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />,
+                Alert: <circle cx="12" cy="12" r="10" />
+            };
+            return (
+                <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block">
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
+        };
+
+        const App = () => {
+            // --- CẤU HÌNH & DỮ LIỆU ---
+            const [config, setConfig] = useState(() => {
+                const saved = localStorage.getItem('yokdon_config_v7');
+                return saved ? JSON.parse(saved) : {
+                    agencyName: "CỤC LÂM NGHIỆP VÀ KIỂM LÂM\nVƯỜN QUỐC GIA YOK ĐÔN",
+                    mainTitle: "BẢNG PHÂN CÔNG TRỰC TẾT", // Tên ngắn gọn mặc định
+                    startTime: "2026-02-13T16:00",
+                    endTime: "2026-02-23T08:00",
+                    numShifts: 7
+                };
+            });
+
+            const [staffList, setStaffList] = useState(() => {
+                const saved = localStorage.getItem('yokdon_staff_v7');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            const [newStaff, setNewStaff] = useState({ name: "", type: "staff", phone: "" });
+            const [schedule, setSchedule] = useState([]);
+
+            useEffect(() => {
+                localStorage.setItem('yokdon_config_v7', JSON.stringify(config));
+                localStorage.setItem('yokdon_staff_v7', JSON.stringify(staffList));
+            }, [config, staffList]);
+
+            // --- HÀM LÀM TRÒN GIỜ GIAO CA (08h hoặc 16h) ---
+            const snapToHandover = (date) => {
+                const d = new Date(date);
+                const h = d.getHours();
+                if (h >= 4 && h < 12) d.setHours(8, 0, 0, 0);
+                else if (h >= 12 && h < 20) d.setHours(16, 0, 0, 0);
+                else {
+                    if (h >= 20) d.setDate(d.getDate() + 1);
+                    d.setHours(8, 0, 0, 0);
+                }
+                return d;
+            };
+
+            // --- THUẬT TOÁN XẾP LỊCH ---
+            const generateSchedule = () => {
+                const n = parseInt(config.numShifts);
+                if (staffList.length < 2) return alert("Vui lòng nhập thêm nhân sự vào danh sách.");
+
+                // 1. Phân loại nhân sự
+                let leaders = staffList.filter(s => s.type === 'leader').sort(() => Math.random() - 0.5);
+                let securities = staffList.filter(s => s.type === 'security');
+                let regulars = staffList.filter(s => s.type === 'staff').sort(() => Math.random() - 0.5);
+
+                // 2. Xử lý Tổ trưởng (Nếu thừa -> chuyển xuống làm nhân viên)
+                let shiftLeaders = []; 
+                let excessLeaders = [];
+
+                if (leaders.length >= n) {
+                    shiftLeaders = leaders.slice(0, n);
+                    excessLeaders = leaders.slice(n);
+                } else {
+                    // Nếu thiếu Tổ trưởng -> Xoay vòng
+                    shiftLeaders = leaders; // Sẽ dùng toán tử % để lặp lại bên dưới
+                }
+
+                // Gộp Tổ trưởng thừa vào nhóm nhân viên để bốc thăm
+                let memberPool = [...regulars, ...excessLeaders].sort(() => Math.random() - 0.5);
+                
+                // Pool "Phải có tên" (đảm bảo ai cũng được trực ít nhất 1 lần)
+                // Lọc bỏ bảo vệ vì bảo vệ có logic riêng
+                let mustInclude = staffList.filter(s => s.type !== 'security').sort(() => Math.random() - 0.5);
+
+                const start = new Date(config.startTime);
+                const end = new Date(config.endTime);
+                const shiftDurationMs = (end.getTime() - start.getTime()) / n;
+
+                const newShifts = [];
+                for (let i = 0; i < n; i++) {
+                    let sTime = new Date(start.getTime() + i * shiftDurationMs);
+                    let eTime = new Date(start.getTime() + (i + 1) * shiftDurationMs);
+
+                    // Làm tròn giờ giao ca (trừ ca đầu và ca cuối giữ nguyên theo lệnh)
+                    if (i > 0) sTime = snapToHandover(sTime);
+                    if (i < n - 1) eTime = snapToHandover(eTime);
+
+                    // A. Chọn Tổ trưởng (Vị trí số 1)
+                    const leader = shiftLeaders[i % shiftLeaders.length];
+                    
+                    // B. Chọn Bảo vệ (Vị trí cuối)
+                    const security = securities.length > 0 ? securities[Math.floor(Math.random() * securities.length)] : null;
+
+                    let assigned = [leader];
+                    
+                    // C. Lấp đầy nhân viên (Ưu tiên người chưa có tên)
+                    // Mặc định mỗi ca khoảng 4-5 người
+                    const targetSize = Math.max(4, Math.ceil(staffList.length / n));
+
+                    // Vòng 1: Lấy từ danh sách "Phải có tên"
+                    while (assigned.length < targetSize - 1 && mustInclude.length > 0) {
+                        const p = mustInclude.pop();
+                        // Tránh trùng người đã có trong ca (ví dụ trùng leader)
+                        if (!assigned.find(a => a.id === p.id)) assigned.push(p);
+                    }
+
+                    // Vòng 2: Nếu vẫn thiếu, lấy random từ pool chung
+                    while (assigned.length < targetSize - 1) {
+                        if (memberPool.length === 0) memberPool = [...regulars, ...excessLeaders].sort(() => Math.random() - 0.5); // Tái tạo pool nếu hết
+                        const p = memberPool.pop(); 
+                        if (p && !assigned.find(a => a.id === p.id)) assigned.push(p);
+                        else if (!p) break;
+                    }
+
+                    // Chốt bảo vệ ở cuối danh sách
+                    if (security) assigned.push(security);
+
+                    newShifts.push({ id: i + 1, start: sTime, end: eTime, assigned });
+                }
+                setSchedule(newShifts);
+            };
+
+            const formatD = (d) => `${String(d.getHours()).padStart(2, '0')}h ngày ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+            // --- GIAO DIỆN ---
+            return (
+                <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
+                        {/* CỘT 1: CẤU HÌNH */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                            <h2 className="font-bold text-emerald-700 uppercase text-xs flex items-center gap-2 border-b pb-2">
+                                <Icon name="Settings" /> Cấu hình văn bản
+                            </h2>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400">TÊN ĐƠN VỊ (CÓ THỂ SỬA)</label>
+                                    <textarea className="w-full border p-2 rounded text-sm mt-1 focus:ring-1 ring-emerald-500 outline-none font-report font-bold" rows="2" 
+                                        value={config.agencyName} onChange={e => setConfig({...config, agencyName: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400">TIÊU ĐỀ LỊCH TRỰC</label>
+                                    <textarea className="w-full border p-2 rounded text-sm mt-1 font-report font-bold" rows="2"
+                                        value={config.mainTitle} onChange={e => setConfig({...config, mainTitle: e.target.value})} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400">BẮT ĐẦU</label>
+                                        <input type="datetime-local" className="w-full border p-2 rounded text-xs" value={config.startTime} onChange={e => setConfig({...config, startTime: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400">KẾT THÚC</label>
+                                        <input type="datetime-local" className="w-full border p-2 rounded text-xs" value={config.endTime} onChange={e => setConfig({...config, endTime: e.target.value})} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400">SỐ CA TRỰC</label>
+                                    <input type="number" className="w-full border p-2 rounded text-sm" value={config.numShifts} onChange={e => setConfig({...config, numShifts: e.target.value})} />
+                                </div>
+                                <button onClick={generateSchedule} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 shadow-lg flex items-center justify-center gap-2">
+                                    <Icon name="Play" /> XẾP LỊCH TỰ ĐỘNG
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* CỘT 2: NHÂN SỰ */}
+                        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                            <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                <h2 className="font-bold text-blue-700 uppercase text-xs flex items-center gap-2"><Icon name="Users" /> Danh sách cán bộ ({staffList.length})</h2>
+                                <button onClick={() => {if(confirm('Xóa hết?')) setStaffList([])}} className="text-red-400 text-xs hover:text-red-600">Xóa dữ liệu</button>
+                            </div>
+                            <div className="flex gap-2 mb-4 bg-slate-50 p-2 rounded-lg">
+                                <input placeholder="Họ tên" className="flex-1 p-2 border rounded text-sm" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} />
+                                <select className="p-2 border rounded text-sm bg-white" value={newStaff.type} onChange={e => setNewStaff({...newStaff, type: e.target.value})}>
+                                    <option value="staff">Nhân viên</option>
+                                    <option value="leader">Tổ trưởng</option>
+                                    <option value="security">Bảo vệ</option>
+                                </select>
+                                <button onClick={() => {
+                                    if(!newStaff.name) return;
+                                    setStaffList([...staffList, { ...newStaff, id: Date.now() }]);
+                                    setNewStaff({ ...newStaff, name: "" });
+                                }} className="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700"><Icon name="UserPlus" /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto max-h-80 border rounded-lg">
+                                <table className="w-full text-sm">
+                                    <tbody className="divide-y divide-slate-100">
+                                        {staffList.map(s => (
+                                            <tr key={s.id} className="group hover:bg-blue-50/30">
+                                                <td className="p-2 font-medium">{s.name}</td>
+                                                <td className="p-2 text-[10px] text-slate-400 uppercase font-bold">{s.type === 'leader' ? 'Tổ trưởng' : s.type === 'security' ? 'Bảo vệ' : 'Nhân viên'}</td>
+                                                <td className="p-2 text-right opacity-0 group-hover:opacity-100">
+                                                    <button onClick={() => setStaffList(staffList.filter(i => i.id !== s.id))} className="text-red-300 hover:text-red-500"><Icon name="Trash" /></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* VĂN BẢN HIỂN THỊ ĐỂ IN */}
+                    {schedule.length > 0 && (
+                        <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-200 print-area relative">
+                            <button onClick={() => window.print()} className="no-print absolute top-6 right-10 bg-slate-900 text-white px-6 py-2 rounded-lg flex items-center gap-2 font-bold shadow-lg">
+                                <Icon name="Printer" /> IN LỊCH TRỰC
+                            </button>
+
+                            <div className="max-w-[850px] mx-auto font-report text-black leading-tight">
+                                <div className="flex justify-between text-[11pt] mb-12">
+                                    <div className="text-center font-bold whitespace-pre-line uppercase leading-snug">{config.agencyName}</div>
+                                    <div className="text-center">
+                                        <p className="font-bold uppercase mb-1 leading-tight">Cộng hòa xã hội chủ nghĩa Việt Nam</p>
+                                        <p className="font-bold underline underline-offset-4 decoration-1">Độc lập - Tự do - Hạnh phúc</p>
+                                    </div>
+                                </div>
+
+                                <div className="text-center mb-10">
+                                    <h1 className="text-[16pt] font-bold uppercase leading-tight whitespace-pre-line">{config.mainTitle}</h1>
+                                </div>
+
+                                <table className="w-full border-collapse border-[1.5px] border-black text-[11pt]">
+                                    <thead>
+                                        <tr className="bg-slate-50">
+                                            <th className="border border-black p-2 w-[10%] text-center">Tổ trực</th>
+                                            <th className="border border-black p-2 w-[22%] text-center">Dương lịch</th>
+                                            <th className="border border-black p-2 w-[23%] text-center">Âm lịch (Dự kiến)</th>
+                                            <th className="border border-black p-2 bg-yellow-50/10 font-bold text-center">Danh sách cán bộ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {schedule.map(shift => (
+                                            <tr key={shift.id}>
+                                                <td className="border border-black p-2 text-center font-bold">{shift.id}</td>
+                                                <td className="border border-black p-2 text-[10.5pt] leading-snug">{formatD(shift.start)}<br/>đến {formatD(shift.end)}</td>
+                                                <td className="border border-black p-2 text-[10pt] italic text-center">Theo lịch Tết</td>
+                                                <td className="border border-black p-2 bg-yellow-50/5">
+                                                    <div className="space-y-1">
+                                                        {shift.assigned.map((s, idx) => (
+                                                            <div key={idx} className="flex gap-2">
+                                                                <span className="w-4 text-slate-300 text-xs text-right">{idx + 1}.</span>
+                                                                <span className={idx === 0 ? "font-bold" : ""}>
+                                                                    {s.name}
+                                                                    {idx === 0 ? " - Tổ trưởng" : (s.type === 'security' ? " - Bảo vệ" : "")}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                <div className="mt-16 flex justify-end">
+                                    <div className="text-center w-72">
+                                        <p className="font-bold uppercase text-[11pt] mb-24">LÃNH ĐẠO VƯỜN</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
 </html>
